@@ -1,17 +1,17 @@
 /** @format */
 
 import React from "react";
-import { motion } from "framer-motion";
+import { motion, useAnimation } from "framer-motion";
 
-const CoinContainer = () => {
+const CoinContainerWithGravity = () => {
   const containerRef = React.useRef(null);
-  const [coins, setCoins] = React.useState([...Array(5).keys()]); // Number of initial coins
+  const [coins, setCoins] = React.useState([...Array(5).keys()]);
 
   const onDrop = (event, info, coinId) => {
     const { y } = info.point;
     const containerBounds = containerRef.current.getBoundingClientRect();
     if (y > containerBounds.bottom) {
-      setCoins((prevCoins) => prevCoins.filter((id) => id !== coinId)); // Remove the released coin
+      setCoins((prevCoins) => prevCoins.filter((id) => id !== coinId));
     }
   };
 
@@ -19,15 +19,20 @@ const CoinContainer = () => {
     <div
       ref={containerRef}
       style={{
-        width: "300px", // Set your container width
-        height: "500px", // Set your container height
+        width: "300px",
+        height: "500px",
         border: "1px solid #ccc",
         position: "relative",
         overflow: "hidden",
       }}
     >
       {coins.map((coinId) => (
-        <Coin key={coinId} coinId={coinId} onDrop={onDrop} />
+        <Coin
+          key={coinId}
+          coinId={coinId}
+          containerRef={containerRef}
+          onDrop={onDrop}
+        />
       ))}
       <div
         style={{
@@ -43,16 +48,25 @@ const CoinContainer = () => {
   );
 };
 
-const Coin = ({ coinId, onDrop }) => {
-  const handleDragEnd = (event, info) => {
+const Coin = ({ coinId, containerRef, onDrop }) => {
+  const controls = useAnimation();
+
+  const handleDragEnd = async (event, info) => {
     onDrop(event, info, coinId);
+    const containerBounds = containerRef.current.getBoundingClientRect();
+    const distanceToBottom = containerBounds.bottom - info.point.y;
+
+    await controls.start({
+      y: distanceToBottom,
+      transition: { duration: 0.5, ease: "easeOut" },
+    });
   };
 
   return (
     <motion.div
       drag
-      dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
-      dragElastic={0} // No resistance when dragging
+      dragConstraints={containerRef}
+      dragElastic={0.2}
       style={{
         width: "50px",
         height: "50px",
@@ -64,9 +78,9 @@ const Coin = ({ coinId, onDrop }) => {
         zIndex: 2,
       }}
       onDragEnd={handleDragEnd}
-      dragTransition={{ bounceStiffness: 300, bounceDamping: 10 }}
+      animate={controls}
     />
   );
 };
 
-export default CoinContainer;
+export default CoinContainerWithGravity;
